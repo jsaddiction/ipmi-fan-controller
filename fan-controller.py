@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+
+
 import configparser
 import subprocess
 from time import sleep
@@ -76,8 +78,51 @@ sdr_list = '''Temp             | disabled          | ns
     Temp             | disabled          | ns
     '''
 
+sdr_type_fan = '''Fan1             | 30h | ok  |  7.1 | 4680 RPM
+Fan2             | 31h | ok  |  7.1 | 4680 RPM
+Fan3             | 32h | ok  |  7.1 | 4560 RPM
+Fan4             | 33h | ok  |  7.1 | 4680 RPM
+Fan5             | 34h | ok  |  7.1 | 4680 RPM
+Fan6             | 35h | ok  |  7.1 | 4680 RPM
+Fan Redundancy   | 75h | ok  |  7.1 | Fully Redundant
+'''
+sdr_type_fan2 = '''FAN 1 RPM        | 30h | ok  |  7.1 | 3600 RPM
+FAN 2 RPM        | 31h | ok  |  7.1 | 3720 RPM
+FAN 3 RPM        | 32h | ok  |  7.1 | 3600 RPM'''
+class Ipmi:
+    def __init__(self, host=None, user=None, password=None):
+        self._cmdList = ['ipmitool']
+        if host and user and password:
+            self._cmdList.extend(['-I', 'lanplus'])
+            self._cmdList.extend(['-H', host])
+            self._cmdList.extend(['-U', user])
+            self._cmdList.extend(['-P', password])
 
-class FanControl():
+    def sendCmd(self, cmd):
+        # cmd example string 'sdr list'
+        # returns unformatted response
+        commandList = self._cmdList
+        commandList.extend([x.strip() for x in cmd.split(' ')])
+        print('Sending: {}'.format(commandList))
+
+    def getFans(self):
+        # parses returned fan data from IPMI enabled devices
+        # cmd = 'sdr type fan'
+        # result = sendCmd(cmd)
+        result = sdr_type_fan
+
+        # Start parsing
+        fans = {}
+        for line in result.splitlines():
+            singleFan = [x.strip() for x in line.split('|')]
+            try:
+                fans[singleFan[0]] = int(singleFan[-1].replace('RPM', '').strip())
+            except ValueError:
+                pass
+
+        print(fans)
+
+class FanControl:
     # Constants
     MANUAL_FAN_CMD = 'raw 0x30 0x30 0x01 0x00'
     AUTO_FAN_CMD = 'raw 0x30 0x30 0x01 0x01'
@@ -119,5 +164,8 @@ class FanControl():
 
 
 if __name__ == '__main__':
-    cooling = FanControl()
-    print(cooling.fanLabels)
+    # cooling = FanControl()
+    # print(cooling.fanLabels)
+    ipmi = Ipmi('192.168.0.7', 'justin', 'Redflyer1!')
+    ipmi.getFans()
+    # ipmi.sendCmd('sdr list')
